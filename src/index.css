@@ -7,7 +7,6 @@
   --white: #ffffff;
   --green: #3d7a5e;
   --green-light: #e8f5ee;
-  --green-mid: #b8ddc8;
   --text: #1a1a1a;
   --text-soft: #6b7280;
   --radius: 20px;
@@ -34,23 +33,27 @@ body {
 .page-content {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 80px;
+  padding-bottom: 100px;
 }
 
-/* BOTTOM NAV */
+/* BOTTOM NAV FLOTANTE */
 .bottom-nav {
   position: fixed;
-  bottom: 0;
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  width: 100%;
-  max-width: 430px;
-  background: var(--white);
+  width: calc(100% - 48px);
+  max-width: 380px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 10px 0 20px;
-  border-top: 1px solid #eee;
+  padding: 10px 8px;
+  border-radius: 28px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  border: 1px solid rgba(255,255,255,0.6);
   z-index: 100;
 }
 
@@ -60,33 +63,55 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 3px;
   cursor: pointer;
   color: var(--text-soft);
   font-family: 'DM Sans', sans-serif;
-  padding: 4px 16px;
-  border-radius: 12px;
+  padding: 6px 16px;
+  border-radius: 20px;
   transition: all 0.2s;
+  flex: 1;
 }
 
-.bottom-nav button span { font-size: 22px; }
-.bottom-nav button small { font-size: 10px; font-weight: 500; }
+.bottom-nav button svg {
+  width: 22px;
+  height: 22px;
+  stroke: var(--text-soft);
+  transition: stroke 0.2s;
+}
+
+.bottom-nav button small {
+  font-size: 10px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
 
 .bottom-nav button.active {
-  color: var(--green);
+  background: var(--green-light);
 }
 
-.bottom-nav button.nav-center span {
+.bottom-nav button.active svg {
+  stroke: var(--green);
+}
+
+.bottom-nav button.active small {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.bottom-nav button.nav-center {
   background: var(--green);
-  border-radius: 50%;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  margin-top: -20px;
-  box-shadow: 0 4px 16px rgba(61,122,94,0.35);
+  border-radius: 20px;
+  padding: 8px 20px;
+}
+
+.bottom-nav button.nav-center svg {
+  stroke: white;
+}
+
+.bottom-nav button.nav-center small {
+  color: white;
+  font-weight: 600;
 }
 
 /* CARDS */
@@ -97,7 +122,6 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-/* HEADER */
 .page-header {
   padding: 56px 24px 16px;
 }
