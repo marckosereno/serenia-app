@@ -16,9 +16,11 @@ const MENSAJE_INICIAL = {
   content: '¡Hola! Soy SerenIA 🌿 Estoy aquí para escucharte. ¿Cómo te sientes hoy?'
 }
 
-// Detectar soporte de Web Speech API
-const tieneVoz = typeof window !== 'undefined' &&
-  ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+// Detectar plataforma y capacidades
+const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+const tieneWebSpeech = !esIOS && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+const tieneMediaRecorder = typeof MediaRecorder !== 'undefined'
+const tieneVoz = tieneWebSpeech || tieneMediaRecorder
 
 const IconMic = ({ activo }) => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -54,14 +56,18 @@ export default function Chat({ navigate }) {
     } catch (e) {}
     return [MENSAJE_INICIAL]
   })
-  const [input, setInput]           = useState('')
-  const [loading, setLoading]       = useState(false)
-  const [escuchando, setEscuchando] = useState(false)
-  const [confirmNew, setConfirmNew] = useState(false)
-  const bottomRef   = useRef(null)
-  const inputRef    = useRef(null)
-  const containerRef= useRef(null)
-  const reconRef    = useRef(null)
+  const [input, setInput]             = useState('')
+  const [loading, setLoading]         = useState(false)
+  const [escuchando, setEscuchando]   = useState(false)
+  const [procesando, setProcesando]   = useState(false)
+  const [confirmNew, setConfirmNew]   = useState(false)
+
+  const bottomRef    = useRef(null)
+  const inputRef     = useRef(null)
+  const containerRef = useRef(null)
+  const reconRef     = useRef(null)
+  const mediaRecRef  = useRef(null)
+  const chunksRef    = useRef([])
 
   // Persistir mensajes
   useEffect(() => {
@@ -104,38 +110,101 @@ export default function Chat({ navigate }) {
     return () => clearTimeout(t)
   }, [])
 
-  // Limpiar reconocimiento al desmontar
   useEffect(() => {
-    return () => { reconRef.current?.abort() }
+    return () => {
+      reconRef.current?.abort()
+      mediaRecRef.current?.stream?.getTracks().forEach(t => t.stop())
+    }
   }, [])
 
-  const toggleVoz = () => {
-    if (escuchando) {
-      reconRef.current?.stop()
-      setEscuchando(false)
-      return
-    }
-
+  // ── Voz Android (Web Speech API) ──────────────────────────
+  const iniciarWebSpeech = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SR) return
-
     const recon = new SR()
     reconRef.current = recon
     recon.lang = 'es-MX'
     recon.continuous = false
     recon.interimResults = false
-
     recon.onstart  = () => setEscuchando(true)
     recon.onend    = () => setEscuchando(false)
     recon.onerror  = () => setEscuchando(false)
-
     recon.onresult = (e) => {
       const texto = e.results[0][0].transcript
       setInput(prev => prev ? `${prev} ${texto}` : texto)
       setEscuchando(false)
     }
-
     recon.start()
+  }
+
+  // ── Voz iOS (MediaRecorder → Groq Whisper) ────────────────
+  const iniciarMediaRecorder = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+
+      // Elegir el formato más compatible
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
+        : 'audio/webm'
+
+      const mr = new MediaRecorder(stream, { mimeType })
+      mediaRecRef.current = mr
+      chunksRef.current = []
+
+      mr.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop())
+        setEscuchando(false)
+        setProcesando(true)
+
+        try {
+          const blob = new Blob(chunksRef.current, { type: mimeType })
+          const arrayBuffer = await blob.arrayBuffer()
+
+          const res = await fetch('/api/transcribe', {
+            method: 'POST',
+            headers: { 'Content-Type': mimeType },
+            body: arrayBuffer
+          })
+
+          const data = await res.json()
+          if (data.text) {
+            setInput(prev => prev ? `${prev} ${data.text}` : data.text)
+          }
+        } catch (err) {
+          console.error('Whisper error:', err)
+        } finally {
+          setProcesando(false)
+        }
+      }
+
+      mr.start()
+      setEscuchando(true)
+
+    } catch (err) {
+      console.error('MediaRecorder error:', err)
+      setEscuchando(false)
+    }
+  }
+
+  const toggleVoz = () => {
+    if (escuchando) {
+      // Detener
+      if (tieneWebSpeech) {
+        reconRef.current?.stop()
+      } else {
+        mediaRecRef.current?.stop()
+      }
+      setEscuchando(false)
+      return
+    }
+    if (tieneWebSpeech) iniciarWebSpeech()
+    else iniciarMediaRecorder()
   }
 
   const nuevaConversacion = () => {
@@ -179,6 +248,10 @@ export default function Chat({ navigate }) {
     setLoading(false)
   }
 
+  const estadoVoz = escuchando
+    ? (esIOS ? '🎤 Grabando... toca para enviar' : '🎤 Escuchando...')
+    : procesando ? '⏳ Procesando audio...' : '● En línea'
+
   return (
     <div ref={containerRef} style={{
       position: 'fixed',
@@ -195,21 +268,15 @@ export default function Chat({ navigate }) {
 
       {/* HEADER */}
       <div style={{
-        flexShrink: 0,
-        background: 'white',
-        padding: '0 16px',
-        borderBottom: '1px solid rgba(0,0,0,0.08)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        height: 56
+        flexShrink: 0, background: 'white',
+        padding: '0 16px', borderBottom: '1px solid rgba(0,0,0,0.08)',
+        display: 'flex', alignItems: 'center', gap: 10, height: 56
       }}>
         <button onClick={() => navigate('home')} style={{
           background: '#f0f0eb', border: 'none',
           width: 34, height: 34, borderRadius: '50%',
           fontSize: 16, cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
         }}>←</button>
 
         <div style={{
@@ -223,12 +290,16 @@ export default function Chat({ navigate }) {
           <p style={{ fontWeight: 700, fontSize: 15, fontFamily: 'DM Sans, sans-serif', margin: 0, lineHeight: 1.3 }}>
             SerenIA
           </p>
-          <p style={{ fontSize: 11, color: '#3d7a5e', fontFamily: 'DM Sans, sans-serif', margin: 0, lineHeight: 1.3 }}>
-            {escuchando ? '🎤 Escuchando...' : '● En línea'}
+          <p style={{
+            fontSize: 11,
+            color: escuchando || procesando ? '#e07a5f' : '#3d7a5e',
+            fontFamily: 'DM Sans, sans-serif', margin: 0, lineHeight: 1.3,
+            transition: 'color 0.2s'
+          }}>
+            {estadoVoz}
           </p>
         </div>
 
-        {/* Botón nueva conversación */}
         <button onClick={nuevaConversacion} style={{
           background: confirmNew ? '#fff0f0' : '#f0f0eb',
           border: confirmNew ? '1.5px solid #e07a5f' : '1.5px solid transparent',
@@ -269,8 +340,7 @@ export default function Chat({ navigate }) {
       {/* MENSAJES */}
       <div style={{
         flex: 1, overflowY: 'auto', overflowX: 'hidden',
-        padding: '16px 14px 8px',
-        WebkitOverflowScrolling: 'touch'
+        padding: '16px 14px 8px', WebkitOverflowScrolling: 'touch'
       }}>
         {messages.map((m, i) => (
           <div key={i} style={{
@@ -317,21 +387,23 @@ export default function Chat({ navigate }) {
           </div>
         )}
 
-        {/* Indicador de escucha */}
-        {escuchando && (
-          <div style={{
-            display: 'flex', justifyContent: 'center',
-            marginBottom: 10
-          }}>
+        {(escuchando || procesando) && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
             <div style={{
-              background: '#fff0f0', border: '1px solid #e07a5f44',
+              background: procesando ? '#f0faf4' : '#fff0f0',
+              border: `1px solid ${procesando ? '#3d7a5e44' : '#e07a5f44'}`,
               borderRadius: 20, padding: '8px 16px',
-              fontSize: 13, color: '#e07a5f',
+              fontSize: 13, color: procesando ? '#3d7a5e' : '#e07a5f',
               fontFamily: 'DM Sans, sans-serif',
               display: 'flex', alignItems: 'center', gap: 6
             }}>
-              <span style={{ fontSize: 16 }}>🎤</span>
-              Escuchando... habla ahora
+              <span style={{ fontSize: 16 }}>{procesando ? '⏳' : '🎤'}</span>
+              {procesando
+                ? 'Procesando tu voz...'
+                : esIOS
+                  ? 'Grabando... toca 🎤 para terminar'
+                  : 'Escuchando... habla ahora'
+              }
             </div>
           </div>
         )}
@@ -341,10 +413,8 @@ export default function Chat({ navigate }) {
 
       {/* INPUT */}
       <div style={{
-        flexShrink: 0,
-        background: 'white',
-        padding: '10px 14px',
-        borderTop: '1px solid #eee',
+        flexShrink: 0, background: 'white',
+        padding: '10px 14px', borderTop: '1px solid #eee',
         display: 'flex', gap: 8, alignItems: 'center'
       }}>
         <input
@@ -356,7 +426,11 @@ export default function Chat({ navigate }) {
             if (e.target.hasAttribute('readonly')) e.target.removeAttribute('readonly')
             setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 350)
           }}
-          placeholder={escuchando ? 'Escuchando...' : 'Escribe cómo te sientes...'}
+          placeholder={
+            procesando ? 'Procesando audio...' :
+            escuchando ? (esIOS ? 'Grabando...' : 'Escuchando...') :
+            'Escribe cómo te sientes...'
+          }
           type="search"
           autoComplete="new-password"
           autoCorrect="off"
@@ -367,43 +441,33 @@ export default function Chat({ navigate }) {
             flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 50,
             padding: '11px 18px', fontSize: 14,
             fontFamily: 'DM Sans, sans-serif', outline: 'none',
-            background: escuchando ? '#fff5f5' : '#f5f5f5',
-            WebkitAppearance: 'none',
-            transition: 'background 0.2s'
+            background: escuchando ? '#fff5f5' : procesando ? '#f0faf4' : '#f5f5f5',
+            WebkitAppearance: 'none', transition: 'background 0.2s'
           }}
         />
 
-        {/* Botón micrófono — solo si el browser lo soporta */}
         {tieneVoz && (
-          <button
-            onClick={toggleVoz}
-            style={{
-              width: 42, height: 42, borderRadius: '50%',
-              background: escuchando ? '#e07a5f' : '#f0f0eb',
-              border: escuchando ? '2px solid #c0392b' : '2px solid transparent',
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, transition: 'all 0.2s',
-              boxShadow: escuchando ? '0 0 0 4px rgba(224,122,95,0.2)' : 'none'
-            }}
-          >
+          <button onClick={toggleVoz} disabled={procesando} style={{
+            width: 42, height: 42, borderRadius: '50%',
+            background: escuchando ? '#e07a5f' : procesando ? '#f0faf4' : '#f0f0eb',
+            border: escuchando ? '2px solid #c0392b' : '2px solid transparent',
+            cursor: procesando ? 'default' : 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, transition: 'all 0.2s',
+            boxShadow: escuchando ? '0 0 0 4px rgba(224,122,95,0.2)' : 'none'
+          }}>
             <IconMic activo={escuchando} />
           </button>
         )}
 
-        {/* Botón enviar */}
-        <button
-          onClick={sendMessage}
-          disabled={loading || !input.trim()}
-          style={{
-            width: 42, height: 42, borderRadius: '50%',
-            background: input.trim() && !loading ? '#3d7a5e' : '#d1d5db',
-            border: 'none', color: 'white', fontSize: 17,
-            cursor: input.trim() && !loading ? 'pointer' : 'default',
-            transition: 'background 0.2s', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}
-        >↑</button>
+        <button onClick={sendMessage} disabled={loading || !input.trim()} style={{
+          width: 42, height: 42, borderRadius: '50%',
+          background: input.trim() && !loading ? '#3d7a5e' : '#d1d5db',
+          border: 'none', color: 'white', fontSize: 17,
+          cursor: input.trim() && !loading ? 'pointer' : 'default',
+          transition: 'background 0.2s', flexShrink: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>↑</button>
       </div>
     </div>
   )
