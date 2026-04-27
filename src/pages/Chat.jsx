@@ -11,32 +11,43 @@ Reglas importantes:
 - Sugiere ejercicios de respiración cuando sea útil
 - No reemplazas a un psicólogo`
 
+const MENSAJE_INICIAL = { role: 'assistant', content: '¡Hola! Soy SerenIA 🌿 Estoy aquí para escucharte. ¿Cómo te sientes hoy?' }
+
 export default function Chat({ navigate }) {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: '¡Hola! Soy SerenIA 🌿 Estoy aquí para escucharte. ¿Cómo te sientes hoy?' }
-  ])
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('serenia_messages')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {}
+    return [MENSAJE_INICIAL]
+  })
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [confirmNew, setConfirmNew] = useState(false)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
   const containerRef = useRef(null)
 
-  // Ancla el contenedor al visual viewport real
+  // Persistir mensajes en localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('serenia_messages', JSON.stringify(messages))
+    } catch (e) {}
+  }, [messages])
+
+  // Visual Viewport API — ancla al viewport real cuando abre teclado
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
-
     const reposition = () => {
       const el = containerRef.current
       if (!el) return
-      // Compensar el scroll y offset del visual viewport
       el.style.top = `${vv.offsetTop}px`
       el.style.left = `${vv.offsetLeft}px`
       el.style.width = `${vv.width}px`
       el.style.height = `${vv.height}px`
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
     }
-
     reposition()
     vv.addEventListener('resize', reposition)
     vv.addEventListener('scroll', reposition)
@@ -59,8 +70,21 @@ export default function Chat({ navigate }) {
     return () => clearTimeout(t)
   }, [])
 
+  const nuevaConversacion = () => {
+    if (confirmNew) {
+      setMessages([MENSAJE_INICIAL])
+      localStorage.removeItem('serenia_messages')
+      setConfirmNew(false)
+    } else {
+      setConfirmNew(true)
+      // Auto-cancelar si no confirma en 3 segundos
+      setTimeout(() => setConfirmNew(false), 3000)
+    }
+  }
+
   const sendMessage = async () => {
     if (!input.trim() || loading) return
+    setConfirmNew(false)
     const userMsg = { role: 'user', content: input.trim() }
     const newMessages = [...messages, userMsg]
     setMessages(newMessages)
@@ -93,12 +117,10 @@ export default function Chat({ navigate }) {
       ref={containerRef}
       style={{
         position: 'fixed',
-        top: 0,
-        left: 0,
+        top: 0, left: 0,
         width: '100%',
         height: `${window.visualViewport?.height || window.innerHeight}px`,
         maxWidth: 430,
-        margin: '0 auto',
         display: 'flex',
         flexDirection: 'column',
         background: '#f5f5f0',
@@ -136,7 +158,70 @@ export default function Chat({ navigate }) {
           <p style={{ fontWeight: 700, fontSize: 15, fontFamily: 'DM Sans, sans-serif', margin: 0, lineHeight: 1.3 }}>SerenIA</p>
           <p style={{ fontSize: 11, color: '#3d7a5e', fontFamily: 'DM Sans, sans-serif', margin: 0, lineHeight: 1.3 }}>● En línea</p>
         </div>
+
+        {/* Botón nueva conversación */}
+        <button
+          onClick={nuevaConversacion}
+          title="Nueva conversación"
+          style={{
+            background: confirmNew ? '#fff0f0' : '#f0f0eb',
+            border: confirmNew ? '1.5px solid #e07a5f' : '1.5px solid transparent',
+            width: 34, height: 34, borderRadius: '50%',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            transition: 'all 0.2s'
+          }}
+        >
+          {confirmNew ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e07a5f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/>
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+          )}
+        </button>
       </div>
+
+      {/* Banner de confirmación */}
+      {confirmNew && (
+        <div style={{
+          background: '#fff3f0',
+          borderBottom: '1px solid #f5c5b8',
+          padding: '10px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0
+        }}>
+          <p style={{ fontSize: 13, color: '#c0392b', fontFamily: 'DM Sans, sans-serif', margin: 0 }}>
+            ¿Borrar conversación?
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setConfirmNew(false)}
+              style={{
+                background: 'white', border: '1px solid #ddd',
+                borderRadius: 8, padding: '4px 12px',
+                fontSize: 12, cursor: 'pointer',
+                fontFamily: 'DM Sans, sans-serif'
+              }}
+            >Cancelar</button>
+            <button
+              onClick={nuevaConversacion}
+              style={{
+                background: '#e07a5f', border: 'none',
+                borderRadius: 8, padding: '4px 12px',
+                fontSize: 12, color: 'white', cursor: 'pointer',
+                fontFamily: 'DM Sans, sans-serif', fontWeight: 600
+              }}
+            >Sí, nueva</button>
+          </div>
+        </div>
+      )}
 
       {/* MENSAJES */}
       <div style={{
