@@ -17,20 +17,33 @@ export default function Chat({ navigate }) {
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [chatHeight, setChatHeight] = useState(window.visualViewport?.height || window.innerHeight)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+  const containerRef = useRef(null)
 
-  // Visual Viewport API — se ajusta cuando el teclado abre/cierra
+  // Ancla el contenedor al visual viewport real
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
-    const onResize = () => {
-      setChatHeight(vv.height)
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+
+    const reposition = () => {
+      const el = containerRef.current
+      if (!el) return
+      // Compensar el scroll y offset del visual viewport
+      el.style.top = `${vv.offsetTop}px`
+      el.style.left = `${vv.offsetLeft}px`
+      el.style.width = `${vv.width}px`
+      el.style.height = `${vv.height}px`
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
     }
-    vv.addEventListener('resize', onResize)
-    return () => vv.removeEventListener('resize', onResize)
+
+    reposition()
+    vv.addEventListener('resize', reposition)
+    vv.addEventListener('scroll', reposition)
+    return () => {
+      vv.removeEventListener('resize', reposition)
+      vv.removeEventListener('scroll', reposition)
+    }
   }, [])
 
   useEffect(() => {
@@ -76,21 +89,23 @@ export default function Chat({ navigate }) {
   }
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: '100%',
-      maxWidth: 430,
-      height: `${chatHeight}px`,
-      display: 'flex',
-      flexDirection: 'column',
-      background: '#f5f5f0',
-      zIndex: 200,
-      overflow: 'hidden'
-    }}>
-
+    <div
+      ref={containerRef}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: `${window.visualViewport?.height || window.innerHeight}px`,
+        maxWidth: 430,
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#f5f5f0',
+        zIndex: 200,
+        overflow: 'hidden'
+      }}
+    >
       {/* HEADER */}
       <div style={{
         flexShrink: 0,
@@ -220,7 +235,6 @@ export default function Chat({ navigate }) {
           }}
         >↑</button>
       </div>
-
     </div>
   )
 }
