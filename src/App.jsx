@@ -53,36 +53,37 @@ export default function App() {
 
   const onboardingDone = localStorage.getItem('serenia_onboarding') === 'done'
 
-  // Mostrar onboarding si no se ha completado
   if (!onboardingDone || !perfil) {
-    return (
-      <Onboarding onComplete={(p) => {
-        setPerfil(p)
-      }} />
-    )
+    return <Onboarding onComplete={(p) => setPerfil(p)} />
   }
 
-  // Chat ocupa pantalla completa
   if (page === 'chat') {
     return <Chat navigate={setPage} perfil={perfil} />
   }
 
   const nombre = perfil?.nombre || ''
+  const inicial = nombre ? nombre[0].toUpperCase() : '🌿'
 
   return (
     <div className="app-shell">
 
-      {/* HEADER */}
+      {/* HEADER FLOTANTE */}
       <header className="app-header">
         <div className="header-left">
-          <button className="header-icon-btn"><IconMenu /></button>
+          <button className="header-icon-btn">
+            <IconMenu />
+          </button>
+        </div>
+
+        <div className="header-center">
           <span className="header-logo">SerenIA 🌿</span>
         </div>
+
         <div className="header-right">
-          <button className="header-icon-btn"><IconBell /></button>
-          <div className="avatar" title={nombre}>
-            {nombre ? nombre[0].toUpperCase() : '🧑'}
-          </div>
+          <button className="header-icon-btn">
+            <IconBell />
+          </button>
+          <div className="avatar">{inicial}</div>
         </div>
       </header>
 
