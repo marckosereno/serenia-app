@@ -30,11 +30,11 @@ export default function Home({ navigate, perfil }) {
         }}>
           <p style={{ fontSize: 13, opacity: 0.85 }}>Tu espacio seguro</p>
           <h2 style={{
-            fontFamily: 'DM Serif Display, serif',
-            fontSize: 22, fontWeight: 400, marginTop: 4
-          }}>
-            SerenIA está aquí<br />para escucharte
-          </h2>
+  fontFamily: 'Libre Baskerville, serif',
+  fontSize: 22, fontWeight: 700, marginTop: 4
+}}>
+  SerenIA está aquí<br />para escucharte
+</h2>
           <button onClick={() => navigate('chat')} style={{
             marginTop: 16, background: 'white', color: '#3d7a5e',
             border: 'none', borderRadius: 12, padding: '10px 20px',
