@@ -1,6 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap');
 
-
 * {
   margin: 0;
   padding: 0;
@@ -18,8 +17,8 @@
   --text-soft: #6b7280;
   --radius: 20px;
   --shadow-sm: 0 2px 12px rgba(0,0,0,0.05);
-  --header-h: 64px;
-  --nav-h: 90px;
+  --header-h: 56px;
+  --nav-h: 88px;
 }
 
 html, body, #root {
@@ -34,7 +33,7 @@ body {
   color: var(--text);
 }
 
-/* SHELL — ocupa todo el viewport */
+/* SHELL */
 .app-shell {
   width: 100%;
   max-width: 430px;
@@ -46,18 +45,18 @@ body {
   position: relative;
 }
 
-/* HEADER STICKY */
+/* HEADER */
 .app-header {
   flex-shrink: 0;
   height: var(--header-h);
-  background: rgba(255,255,255,0.92);
+  background: rgba(255,255,255,0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(0,0,0,0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 18px;
   z-index: 50;
 }
 
@@ -70,15 +69,15 @@ body {
 .app-header .header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .header-icon-btn {
   background: none;
   border: none;
   cursor: pointer;
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -86,14 +85,13 @@ body {
   transition: background 0.2s;
 }
 
-.header-icon-btn:active {
-  background: var(--green-light);
-}
+.header-icon-btn:active { background: var(--green-light); }
 
 .header-icon-btn svg {
   width: 22px;
   height: 22px;
   stroke: var(--text-soft);
+  fill: none;
 }
 
 .header-logo {
@@ -104,8 +102,8 @@ body {
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: linear-gradient(135deg, #3d7a5e, #5a9e7a);
   display: flex;
@@ -116,7 +114,7 @@ body {
   border: 2px solid var(--green-light);
 }
 
-/* SCROLL AREA — el único que hace scroll */
+/* SCROLL AREA */
 .page-content {
   flex: 1;
   overflow-y: auto;
@@ -125,7 +123,7 @@ body {
   padding-bottom: 24px;
 }
 
-/* BOTTOM NAV STICKY */
+/* BOTTOM NAV WRAP */
 .bottom-nav-wrap {
   flex-shrink: 0;
   height: var(--nav-h);
@@ -133,10 +131,10 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding-bottom: 16px;
+  padding-bottom: 14px;
 }
 
-/* Sombra blur encima del nav */
+/* Sombra gradiente encima del nav */
 .bottom-nav-wrap::before {
   content: '';
   position: absolute;
@@ -148,19 +146,21 @@ body {
   pointer-events: none;
 }
 
+/* NAV PILL */
 .bottom-nav {
   width: 94%;
   max-width: 400px;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   align-items: center;
-  padding: 10px 8px;
+  padding: 8px 6px;
   border-radius: 28px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.05);
   border: 1px solid rgba(255,255,255,0.8);
+  gap: 4px;
 }
 
 .bottom-nav button {
@@ -173,10 +173,11 @@ body {
   cursor: pointer;
   color: var(--text-soft);
   font-family: 'DM Sans', sans-serif;
-  padding: 6px 16px;
-  border-radius: 20px;
+  padding: 6px 10px;
+  border-radius: 18px;
   transition: all 0.2s;
   flex: 1;
+  min-width: 0;
 }
 
 .bottom-nav button svg {
@@ -185,12 +186,14 @@ body {
   stroke: var(--text-soft);
   fill: none;
   transition: stroke 0.2s;
+  flex-shrink: 0;
 }
 
 .bottom-nav button small {
   font-size: 10px;
   font-weight: 500;
   transition: color 0.2s;
+  white-space: nowrap;
 }
 
 .bottom-nav button.active {
@@ -206,10 +209,12 @@ body {
   font-weight: 700;
 }
 
+/* Botón SerenIA — pill verde al final */
 .bottom-nav button.nav-center {
   background: var(--green);
   border-radius: 20px;
-  padding: 8px 20px;
+  padding: 8px 14px;
+  flex: 1.1;
 }
 
 .bottom-nav button.nav-center svg {
