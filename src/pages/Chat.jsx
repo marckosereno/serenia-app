@@ -18,10 +18,22 @@ export default function Chat({ navigate }) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef(null)
+  const inputRef = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  // Fix autocomplete: readonly trick en mount
+  useEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.setAttribute('readonly', 'readonly')
+    const timer = setTimeout(() => {
+      el.removeAttribute('readonly')
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return
@@ -61,20 +73,22 @@ export default function Chat({ navigate }) {
   return (
     <div style={{
       position: 'fixed',
-      top: 0, left: '50%',
+      top: 0,
+      left: '50%',
       transform: 'translateX(-50%)',
       width: '100%',
       maxWidth: 430,
-      height: '100dvh',
+      height: '100%',
       display: 'flex',
       flexDirection: 'column',
       background: '#f5f5f0',
       zIndex: 200
     }}>
 
-      {/* HEADER COMPACTO STICKY */}
+      {/* HEADER sticky — siempre visible incluso con teclado abierto */}
       <div style={{
-        background: 'rgba(255,255,255,0.95)',
+        flexShrink: 0,
+        background: 'rgba(255,255,255,0.97)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         padding: '12px 16px',
@@ -82,16 +96,15 @@ export default function Chat({ navigate }) {
         display: 'flex',
         alignItems: 'center',
         gap: 10,
-        flexShrink: 0,
-        minHeight: 56
+        minHeight: 56,
+        zIndex: 10
       }}>
         <button
           onClick={() => navigate('home')}
           style={{
             background: '#f0f0eb',
             border: 'none',
-            width: 34,
-            height: 34,
+            width: 34, height: 34,
             borderRadius: '50%',
             fontSize: 16,
             cursor: 'pointer',
@@ -192,27 +205,35 @@ export default function Chat({ navigate }) {
         <div ref={bottomRef} style={{ height: 4 }} />
       </div>
 
-      {/* INPUT FIJO ABAJO */}
+      {/* INPUT */}
       <div style={{
+        flexShrink: 0,
         background: 'white',
-        padding: '10px 14px 10px',
+        padding: '10px 14px',
         borderTop: '1px solid #eee',
         display: 'flex',
         gap: 8,
-        alignItems: 'center',
-        flexShrink: 0
+        alignItems: 'center'
       }}>
         <input
+          ref={inputRef}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && sendMessage()}
+          onFocus={e => {
+            const el = e.target
+            if (el.hasAttribute('readonly')) el.removeAttribute('readonly')
+            setTimeout(() => {
+              bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+            }, 300)
+          }}
           placeholder="Escribe cómo te sientes..."
-          autoComplete="off"
+          type="search"
+          autoComplete="new-password"
           autoCorrect="off"
           autoCapitalize="sentences"
           spellCheck="false"
-          type="text"
-          inputMode="text"
+          name={`serenia-chat-${Date.now()}`}
           style={{
             flex: 1,
             border: '1.5px solid #e5e7eb',
