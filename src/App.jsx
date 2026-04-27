@@ -44,7 +44,6 @@ const IconMenu = () => (
 export default function App() {
   const [page, setPage] = useState('home')
 
-  // Chat ocupa toda la pantalla aparte
   if (page === 'chat') {
     return <Chat navigate={setPage} />
   }
@@ -55,48 +54,58 @@ export default function App() {
       {/* HEADER STICKY */}
       <header className="app-header">
         <div className="header-left">
-          <button className="header-icon-btn">
-            <IconMenu />
-          </button>
+          <button className="header-icon-btn"><IconMenu /></button>
           <span className="header-logo">SerenIA 🌿</span>
         </div>
         <div className="header-right">
-          <button className="header-icon-btn">
-            <IconBell />
-          </button>
+          <button className="header-icon-btn"><IconBell /></button>
           <div className="avatar">🧑</div>
         </div>
       </header>
 
       {/* SCROLL AREA */}
       <div className="page-content">
-        {page === 'home' && <Home navigate={setPage} />}
-        {page === 'registro' && <Registro navigate={setPage} />}
-        {page === 'ejercicios' && <Ejercicios navigate={setPage} />}
+        {page === 'home'      && <Home navigate={setPage} />}
+        {page === 'registro'  && <Registro navigate={setPage} />}
+        {page === 'ejercicios'&& <Ejercicios navigate={setPage} />}
       </div>
 
-      {/* NAV STICKY */}
+      {/* NAV STICKY — orden: Inicio, Registro, Bienestar, SerenIA */}
       <div className="bottom-nav-wrap">
         <nav className="bottom-nav">
-          <button onClick={() => setPage('home')} className={page === 'home' ? 'active' : ''}>
+
+          <button
+            onClick={() => setPage('home')}
+            className={page === 'home' ? 'active' : ''}
+          >
             <IconHome />
             <small>Inicio</small>
           </button>
 
-          <button onClick={() => setPage('registro')} className={page === 'registro' ? 'active' : ''}>
+          <button
+            onClick={() => setPage('registro')}
+            className={page === 'registro' ? 'active' : ''}
+          >
             <IconRegistro />
             <small>Registro</small>
           </button>
 
-          <button onClick={() => setPage('chat')} className="nav-center">
+          <button
+            onClick={() => setPage('ejercicios')}
+            className={page === 'ejercicios' ? 'active' : ''}
+          >
+            <IconBienestar />
+            <small>Bienestar</small>
+          </button>
+
+          <button
+            onClick={() => setPage('chat')}
+            className="nav-center"
+          >
             <IconChat />
             <small>SerenIA</small>
           </button>
 
-          <button onClick={() => setPage('ejercicios')} className={page === 'ejercicios' ? 'active' : ''}>
-            <IconBienestar />
-            <small>Bienestar</small>
-          </button>
         </nav>
       </div>
 
