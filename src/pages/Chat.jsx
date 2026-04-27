@@ -11,7 +11,40 @@ Reglas importantes:
 - Sugiere ejercicios de respiración cuando sea útil
 - No reemplazas a un psicólogo`
 
-const MENSAJE_INICIAL = { role: 'assistant', content: '¡Hola! Soy SerenIA 🌿 Estoy aquí para escucharte. ¿Cómo te sientes hoy?' }
+const MENSAJE_INICIAL = {
+  role: 'assistant',
+  content: '¡Hola! Soy SerenIA 🌿 Estoy aquí para escucharte. ¿Cómo te sientes hoy?'
+}
+
+// Detectar soporte de Web Speech API
+const tieneVoz = typeof window !== 'undefined' &&
+  ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
+
+const IconMic = ({ activo }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+    stroke={activo ? 'white' : '#6b7280'} strokeWidth="1.8"
+    strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+    <line x1="12" y1="19" x2="12" y2="23"/>
+    <line x1="8" y1="23" x2="16" y2="23"/>
+  </svg>
+)
+
+const IconLapiz = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+    stroke="#6b7280" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20h9"/>
+    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+  </svg>
+)
+
+const IconBasura = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+    stroke="#e07a5f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/>
+  </svg>
+)
 
 export default function Chat({ navigate }) {
   const [messages, setMessages] = useState(() => {
@@ -21,30 +54,31 @@ export default function Chat({ navigate }) {
     } catch (e) {}
     return [MENSAJE_INICIAL]
   })
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [input, setInput]           = useState('')
+  const [loading, setLoading]       = useState(false)
+  const [escuchando, setEscuchando] = useState(false)
   const [confirmNew, setConfirmNew] = useState(false)
-  const bottomRef = useRef(null)
-  const inputRef = useRef(null)
-  const containerRef = useRef(null)
+  const bottomRef   = useRef(null)
+  const inputRef    = useRef(null)
+  const containerRef= useRef(null)
+  const reconRef    = useRef(null)
 
-  // Persistir mensajes en localStorage
+  // Persistir mensajes
   useEffect(() => {
-    try {
-      localStorage.setItem('serenia_messages', JSON.stringify(messages))
-    } catch (e) {}
+    try { localStorage.setItem('serenia_messages', JSON.stringify(messages)) }
+    catch (e) {}
   }, [messages])
 
-  // Visual Viewport API — ancla al viewport real cuando abre teclado
+  // Visual Viewport API
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
     const reposition = () => {
       const el = containerRef.current
       if (!el) return
-      el.style.top = `${vv.offsetTop}px`
-      el.style.left = `${vv.offsetLeft}px`
-      el.style.width = `${vv.width}px`
+      el.style.top    = `${vv.offsetTop}px`
+      el.style.left   = `${vv.offsetLeft}px`
+      el.style.width  = `${vv.width}px`
       el.style.height = `${vv.height}px`
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
     }
@@ -61,7 +95,7 @@ export default function Chat({ navigate }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  // Fix autocomplete readonly trick
+  // Fix autocomplete
   useEffect(() => {
     const el = inputRef.current
     if (!el) return
@@ -70,6 +104,40 @@ export default function Chat({ navigate }) {
     return () => clearTimeout(t)
   }, [])
 
+  // Limpiar reconocimiento al desmontar
+  useEffect(() => {
+    return () => { reconRef.current?.abort() }
+  }, [])
+
+  const toggleVoz = () => {
+    if (escuchando) {
+      reconRef.current?.stop()
+      setEscuchando(false)
+      return
+    }
+
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+    if (!SR) return
+
+    const recon = new SR()
+    reconRef.current = recon
+    recon.lang = 'es-MX'
+    recon.continuous = false
+    recon.interimResults = false
+
+    recon.onstart  = () => setEscuchando(true)
+    recon.onend    = () => setEscuchando(false)
+    recon.onerror  = () => setEscuchando(false)
+
+    recon.onresult = (e) => {
+      const texto = e.results[0][0].transcript
+      setInput(prev => prev ? `${prev} ${texto}` : texto)
+      setEscuchando(false)
+    }
+
+    recon.start()
+  }
+
   const nuevaConversacion = () => {
     if (confirmNew) {
       setMessages([MENSAJE_INICIAL])
@@ -77,7 +145,6 @@ export default function Chat({ navigate }) {
       setConfirmNew(false)
     } else {
       setConfirmNew(true)
-      // Auto-cancelar si no confirma en 3 segundos
       setTimeout(() => setConfirmNew(false), 3000)
     }
   }
@@ -113,21 +180,19 @@ export default function Chat({ navigate }) {
   }
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        position: 'fixed',
-        top: 0, left: 0,
-        width: '100%',
-        height: `${window.visualViewport?.height || window.innerHeight}px`,
-        maxWidth: 430,
-        display: 'flex',
-        flexDirection: 'column',
-        background: '#f5f5f0',
-        zIndex: 200,
-        overflow: 'hidden'
-      }}
-    >
+    <div ref={containerRef} style={{
+      position: 'fixed',
+      top: 0, left: 0,
+      width: '100%',
+      height: `${window.visualViewport?.height || window.innerHeight}px`,
+      maxWidth: 430,
+      display: 'flex',
+      flexDirection: 'column',
+      background: '#f5f5f0',
+      zIndex: 200,
+      overflow: 'hidden'
+    }}>
+
       {/* HEADER */}
       <div style={{
         flexShrink: 0,
@@ -155,70 +220,48 @@ export default function Chat({ navigate }) {
         }}>🌿</div>
 
         <div style={{ flex: 1 }}>
-          <p style={{ fontWeight: 700, fontSize: 15, fontFamily: 'DM Sans, sans-serif', margin: 0, lineHeight: 1.3 }}>SerenIA</p>
-          <p style={{ fontSize: 11, color: '#3d7a5e', fontFamily: 'DM Sans, sans-serif', margin: 0, lineHeight: 1.3 }}>● En línea</p>
+          <p style={{ fontWeight: 700, fontSize: 15, fontFamily: 'DM Sans, sans-serif', margin: 0, lineHeight: 1.3 }}>
+            SerenIA
+          </p>
+          <p style={{ fontSize: 11, color: '#3d7a5e', fontFamily: 'DM Sans, sans-serif', margin: 0, lineHeight: 1.3 }}>
+            {escuchando ? '🎤 Escuchando...' : '● En línea'}
+          </p>
         </div>
 
         {/* Botón nueva conversación */}
-        <button
-          onClick={nuevaConversacion}
-          title="Nueva conversación"
-          style={{
-            background: confirmNew ? '#fff0f0' : '#f0f0eb',
-            border: confirmNew ? '1.5px solid #e07a5f' : '1.5px solid transparent',
-            width: 34, height: 34, borderRadius: '50%',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0,
-            transition: 'all 0.2s'
-          }}
-        >
-          {confirmNew ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e07a5f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6h18M19 6l-1 14H6L5 6M10 11v6M14 11v6M9 6V4h6v2"/>
-            </svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 20h9"/>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-            </svg>
-          )}
+        <button onClick={nuevaConversacion} style={{
+          background: confirmNew ? '#fff0f0' : '#f0f0eb',
+          border: confirmNew ? '1.5px solid #e07a5f' : '1.5px solid transparent',
+          width: 34, height: 34, borderRadius: '50%',
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0, transition: 'all 0.2s'
+        }}>
+          {confirmNew ? <IconBasura /> : <IconLapiz />}
         </button>
       </div>
 
-      {/* Banner de confirmación */}
+      {/* Banner confirmación */}
       {confirmNew && (
         <div style={{
-          background: '#fff3f0',
-          borderBottom: '1px solid #f5c5b8',
-          padding: '10px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0
+          background: '#fff3f0', borderBottom: '1px solid #f5c5b8',
+          padding: '10px 16px', display: 'flex',
+          alignItems: 'center', justifyContent: 'space-between', flexShrink: 0
         }}>
           <p style={{ fontSize: 13, color: '#c0392b', fontFamily: 'DM Sans, sans-serif', margin: 0 }}>
             ¿Borrar conversación?
           </p>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => setConfirmNew(false)}
-              style={{
-                background: 'white', border: '1px solid #ddd',
-                borderRadius: 8, padding: '4px 12px',
-                fontSize: 12, cursor: 'pointer',
-                fontFamily: 'DM Sans, sans-serif'
-              }}
-            >Cancelar</button>
-            <button
-              onClick={nuevaConversacion}
-              style={{
-                background: '#e07a5f', border: 'none',
-                borderRadius: 8, padding: '4px 12px',
-                fontSize: 12, color: 'white', cursor: 'pointer',
-                fontFamily: 'DM Sans, sans-serif', fontWeight: 600
-              }}
-            >Sí, nueva</button>
+            <button onClick={() => setConfirmNew(false)} style={{
+              background: 'white', border: '1px solid #ddd', borderRadius: 8,
+              padding: '4px 12px', fontSize: 12, cursor: 'pointer',
+              fontFamily: 'DM Sans, sans-serif'
+            }}>Cancelar</button>
+            <button onClick={nuevaConversacion} style={{
+              background: '#e07a5f', border: 'none', borderRadius: 8,
+              padding: '4px 12px', fontSize: 12, color: 'white',
+              cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontWeight: 600
+            }}>Sí, nueva</button>
           </div>
         </div>
       )}
@@ -273,6 +316,26 @@ export default function Chat({ navigate }) {
             }}>•••</div>
           </div>
         )}
+
+        {/* Indicador de escucha */}
+        {escuchando && (
+          <div style={{
+            display: 'flex', justifyContent: 'center',
+            marginBottom: 10
+          }}>
+            <div style={{
+              background: '#fff0f0', border: '1px solid #e07a5f44',
+              borderRadius: 20, padding: '8px 16px',
+              fontSize: 13, color: '#e07a5f',
+              fontFamily: 'DM Sans, sans-serif',
+              display: 'flex', alignItems: 'center', gap: 6
+            }}>
+              <span style={{ fontSize: 16 }}>🎤</span>
+              Escuchando... habla ahora
+            </div>
+          </div>
+        )}
+
         <div ref={bottomRef} style={{ height: 4 }} />
       </div>
 
@@ -293,7 +356,7 @@ export default function Chat({ navigate }) {
             if (e.target.hasAttribute('readonly')) e.target.removeAttribute('readonly')
             setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 350)
           }}
-          placeholder="Escribe cómo te sientes..."
+          placeholder={escuchando ? 'Escuchando...' : 'Escribe cómo te sientes...'}
           type="search"
           autoComplete="new-password"
           autoCorrect="off"
@@ -304,9 +367,31 @@ export default function Chat({ navigate }) {
             flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 50,
             padding: '11px 18px', fontSize: 14,
             fontFamily: 'DM Sans, sans-serif', outline: 'none',
-            background: '#f5f5f5', WebkitAppearance: 'none'
+            background: escuchando ? '#fff5f5' : '#f5f5f5',
+            WebkitAppearance: 'none',
+            transition: 'background 0.2s'
           }}
         />
+
+        {/* Botón micrófono — solo si el browser lo soporta */}
+        {tieneVoz && (
+          <button
+            onClick={toggleVoz}
+            style={{
+              width: 42, height: 42, borderRadius: '50%',
+              background: escuchando ? '#e07a5f' : '#f0f0eb',
+              border: escuchando ? '2px solid #c0392b' : '2px solid transparent',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, transition: 'all 0.2s',
+              boxShadow: escuchando ? '0 0 0 4px rgba(224,122,95,0.2)' : 'none'
+            }}
+          >
+            <IconMic activo={escuchando} />
+          </button>
+        )}
+
+        {/* Botón enviar */}
         <button
           onClick={sendMessage}
           disabled={loading || !input.trim()}
