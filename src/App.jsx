@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Chat from './pages/Chat'
 import Registro from './pages/Registro'
 import Ejercicios from './pages/Ejercicios'
+import Onboarding from './pages/Onboarding'
 import './index.css'
 
 const IconHome = () => (
@@ -43,15 +44,35 @@ const IconMenu = () => (
 
 export default function App() {
   const [page, setPage] = useState('home')
+  const [perfil, setPerfil] = useState(() => {
+    try {
+      const p = localStorage.getItem('serenia_perfil')
+      return p ? JSON.parse(p) : null
+    } catch { return null }
+  })
 
-  if (page === 'chat') {
-    return <Chat navigate={setPage} />
+  const onboardingDone = localStorage.getItem('serenia_onboarding') === 'done'
+
+  // Mostrar onboarding si no se ha completado
+  if (!onboardingDone || !perfil) {
+    return (
+      <Onboarding onComplete={(p) => {
+        setPerfil(p)
+      }} />
+    )
   }
+
+  // Chat ocupa pantalla completa
+  if (page === 'chat') {
+    return <Chat navigate={setPage} perfil={perfil} />
+  }
+
+  const nombre = perfil?.nombre || ''
 
   return (
     <div className="app-shell">
 
-      {/* HEADER STICKY */}
+      {/* HEADER */}
       <header className="app-header">
         <div className="header-left">
           <button className="header-icon-btn"><IconMenu /></button>
@@ -59,53 +80,38 @@ export default function App() {
         </div>
         <div className="header-right">
           <button className="header-icon-btn"><IconBell /></button>
-          <div className="avatar">🧑</div>
+          <div className="avatar" title={nombre}>
+            {nombre ? nombre[0].toUpperCase() : '🧑'}
+          </div>
         </div>
       </header>
 
-      {/* SCROLL AREA */}
+      {/* CONTENIDO */}
       <div className="page-content">
-        {page === 'home'      && <Home navigate={setPage} />}
-        {page === 'registro'  && <Registro navigate={setPage} />}
-        {page === 'ejercicios'&& <Ejercicios navigate={setPage} />}
+        {page === 'home'       && <Home navigate={setPage} perfil={perfil} />}
+        {page === 'registro'   && <Registro navigate={setPage} />}
+        {page === 'ejercicios' && <Ejercicios navigate={setPage} />}
       </div>
 
-      {/* NAV STICKY — orden: Inicio, Registro, Bienestar, SerenIA */}
+      {/* NAV */}
       <div className="bottom-nav-wrap">
         <nav className="bottom-nav">
-
-          <button
-            onClick={() => setPage('home')}
-            className={page === 'home' ? 'active' : ''}
-          >
+          <button onClick={() => setPage('home')} className={page === 'home' ? 'active' : ''}>
             <IconHome />
             <small>Inicio</small>
           </button>
-
-          <button
-            onClick={() => setPage('registro')}
-            className={page === 'registro' ? 'active' : ''}
-          >
+          <button onClick={() => setPage('registro')} className={page === 'registro' ? 'active' : ''}>
             <IconRegistro />
             <small>Registro</small>
           </button>
-
-          <button
-            onClick={() => setPage('ejercicios')}
-            className={page === 'ejercicios' ? 'active' : ''}
-          >
+          <button onClick={() => setPage('ejercicios')} className={page === 'ejercicios' ? 'active' : ''}>
             <IconBienestar />
             <small>Bienestar</small>
           </button>
-
-          <button
-            onClick={() => setPage('chat')}
-            className="nav-center"
-          >
+          <button onClick={() => setPage('chat')} className="nav-center">
             <IconChat />
             <small>SerenIA</small>
           </button>
-
         </nav>
       </div>
 
