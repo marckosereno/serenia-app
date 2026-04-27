@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
 
 * {
   margin: 0;
@@ -17,7 +17,6 @@
   --text-soft: #6b7280;
   --radius: 20px;
   --shadow-sm: 0 2px 12px rgba(0,0,0,0.05);
-  --header-h: 56px;
   --nav-h: 88px;
 }
 
@@ -45,81 +44,100 @@ body {
   position: relative;
 }
 
-/* HEADER */
+/* HEADER FLOTANTE */
 .app-header {
-  flex-shrink: 0;
-  height: var(--header-h);
-  background: rgba(255,255,255,0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(0,0,0,0.06);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18px;
-  z-index: 50;
+  padding: 16px 20px;
+  pointer-events: none;
 }
 
-.app-header .header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+.app-header .header-left,
 .app-header .header-right {
   display: flex;
   align-items: center;
   gap: 8px;
+  pointer-events: all;
+}
+
+.app-header .header-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: all;
+}
+
+.header-logo {
+  font-family: 'Libre Baskerville', serif;
+  font-size: 18px;
+  color: var(--green);
+  letter-spacing: -0.3px;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 7px 14px;
+  border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  white-space: nowrap;
 }
 
 .header-icon-btn {
-  background: none;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: none;
   cursor: pointer;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  transition: all 0.2s;
 }
 
-.header-icon-btn:active { background: var(--green-light); }
+.header-icon-btn:active {
+  transform: scale(0.94);
+  background: var(--green-light);
+}
 
 .header-icon-btn svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   stroke: var(--text-soft);
   fill: none;
 }
 
-.header-logo {
-  font-family: 'DM Serif Display', serif;
-  font-size: 20px;
-  color: var(--green);
-  letter-spacing: -0.5px;
-}
-
 .avatar {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: linear-gradient(135deg, #3d7a5e, #5a9e7a);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: white;
   cursor: pointer;
-  border: 2px solid var(--green-light);
+  font-family: 'DM Sans', sans-serif;
+  box-shadow: 0 2px 10px rgba(61,122,94,0.3);
 }
 
-/* SCROLL AREA */
+/* SCROLL AREA — padding top para dejar espacio al header flotante */
 .page-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  padding-top: 70px;
   padding-bottom: 24px;
 }
 
@@ -134,7 +152,6 @@ body {
   padding-bottom: 14px;
 }
 
-/* Sombra gradiente encima del nav */
 .bottom-nav-wrap::before {
   content: '';
   position: absolute;
@@ -209,7 +226,6 @@ body {
   font-weight: 700;
 }
 
-/* Botón SerenIA — pill verde al final */
 .bottom-nav button.nav-center {
   background: var(--green);
   border-radius: 20px;
@@ -236,13 +252,14 @@ body {
 
 /* PAGE HEADER */
 .page-header {
-  padding: 24px 24px 16px;
+  padding: 16px 24px 16px;
 }
 
 .page-header h1 {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'Libre Baskerville', serif;
   font-size: 28px;
-  font-weight: 400;
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .page-header p {
