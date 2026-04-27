@@ -39,7 +39,7 @@ export default function Chat({ navigate }) {
           'Authorization': `Bearer ${import.meta.env.VITE_ANTHROPIC_KEY}`
         },
         body: JSON.stringify({
-         model: 'llama-3.3-70b-versatile',
+          model: 'llama-3.3-70b-versatile',
           max_tokens: 300,
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
@@ -65,47 +65,71 @@ export default function Chat({ navigate }) {
       transform: 'translateX(-50%)',
       width: '100%',
       maxWidth: 430,
-      height: '100%',
+      height: '100dvh',
       display: 'flex',
       flexDirection: 'column',
       background: '#f5f5f0',
       zIndex: 200
     }}>
 
-      {/* Header fijo */}
+      {/* HEADER COMPACTO STICKY */}
       <div style={{
-        background: 'white',
-        padding: '52px 20px 14px',
-        borderBottom: '1px solid #eee',
+        background: 'rgba(255,255,255,0.95)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        padding: '12px 16px',
+        borderBottom: '1px solid rgba(0,0,0,0.06)',
         display: 'flex',
         alignItems: 'center',
-        gap: 12,
-        flexShrink: 0
+        gap: 10,
+        flexShrink: 0,
+        minHeight: 56
       }}>
         <button
           onClick={() => navigate('home')}
           style={{
-            background: '#f5f5f0', border: 'none',
-            width: 36, height: 36, borderRadius: '50%',
-            fontSize: 18, cursor: 'pointer'
+            background: '#f0f0eb',
+            border: 'none',
+            width: 34,
+            height: 34,
+            borderRadius: '50%',
+            fontSize: 16,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
           }}
         >←</button>
+
         <div style={{
-          width: 40, height: 40, borderRadius: '50%',
+          width: 36, height: 36,
+          borderRadius: '50%',
           background: 'linear-gradient(135deg, #3d7a5e, #5a9e7a)',
           display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: 20
+          justifyContent: 'center', fontSize: 18,
+          flexShrink: 0
         }}>🌿</div>
-        <div>
-          <p style={{ fontWeight: 700, fontSize: 15, fontFamily: 'DM Sans, sans-serif' }}>SerenIA</p>
-          <p style={{ fontSize: 11, color: '#3d7a5e', fontFamily: 'DM Sans, sans-serif' }}>● En línea</p>
+
+        <div style={{ flex: 1 }}>
+          <p style={{
+            fontWeight: 700, fontSize: 14,
+            fontFamily: 'DM Sans, sans-serif',
+            lineHeight: 1.2
+          }}>SerenIA</p>
+          <p style={{
+            fontSize: 11, color: '#3d7a5e',
+            fontFamily: 'DM Sans, sans-serif',
+            lineHeight: 1.2
+          }}>● En línea</p>
         </div>
       </div>
 
-      {/* Mensajes */}
+      {/* MENSAJES */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
+        overflowX: 'hidden',
         padding: '16px 16px 8px',
         WebkitOverflowScrolling: 'touch'
       }}>
@@ -119,20 +143,22 @@ export default function Chat({ navigate }) {
           }}>
             {m.role === 'assistant' && (
               <div style={{
-                width: 32, height: 32, borderRadius: '50%',
+                width: 30, height: 30,
+                borderRadius: '50%',
                 background: 'linear-gradient(135deg, #3d7a5e, #5a9e7a)',
                 display: 'flex', alignItems: 'center',
-                justifyContent: 'center', fontSize: 16, flexShrink: 0
+                justifyContent: 'center',
+                fontSize: 14, flexShrink: 0
               }}>🌿</div>
             )}
             <div style={{
               maxWidth: '75%',
               background: m.role === 'user' ? '#3d7a5e' : 'white',
               color: m.role === 'user' ? 'white' : '#1a1a1a',
-              padding: '12px 16px',
+              padding: '11px 15px',
               borderRadius: m.role === 'user'
-                ? '20px 20px 4px 20px'
-                : '20px 20px 20px 4px',
+                ? '18px 18px 4px 18px'
+                : '18px 18px 18px 4px',
               fontSize: 14,
               lineHeight: 1.6,
               boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
@@ -144,31 +170,35 @@ export default function Chat({ navigate }) {
         ))}
 
         {loading && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', marginBottom: 12 }}>
+          <div style={{
+            display: 'flex', gap: 8,
+            alignItems: 'flex-end', marginBottom: 12
+          }}>
             <div style={{
-              width: 32, height: 32, borderRadius: '50%',
+              width: 30, height: 30, borderRadius: '50%',
               background: 'linear-gradient(135deg, #3d7a5e, #5a9e7a)',
               display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: 16
+              justifyContent: 'center', fontSize: 14
             }}>🌿</div>
             <div style={{
-              background: 'white', padding: '14px 18px',
-              borderRadius: '20px 20px 20px 4px',
+              background: 'white',
+              padding: '12px 16px',
+              borderRadius: '18px 18px 18px 4px',
               boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
               fontSize: 18, letterSpacing: 4, color: '#3d7a5e'
             }}>•••</div>
           </div>
         )}
-        <div ref={bottomRef} style={{ height: 8 }} />
+        <div ref={bottomRef} style={{ height: 4 }} />
       </div>
 
-      {/* Input */}
+      {/* INPUT FIJO ABAJO */}
       <div style={{
         background: 'white',
-        padding: '12px 16px 32px',
+        padding: '10px 14px 10px',
         borderTop: '1px solid #eee',
         display: 'flex',
-        gap: 10,
+        gap: 8,
         alignItems: 'center',
         flexShrink: 0
       }}>
@@ -177,33 +207,44 @@ export default function Chat({ navigate }) {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && sendMessage()}
           placeholder="Escribe cómo te sientes..."
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="sentences"
+          spellCheck="false"
+          type="text"
+          inputMode="text"
           style={{
             flex: 1,
             border: '1.5px solid #e5e7eb',
             borderRadius: 50,
-            padding: '12px 18px',
+            padding: '11px 18px',
             fontSize: 14,
             fontFamily: 'DM Sans, sans-serif',
             outline: 'none',
-            background: '#f9f9f9'
+            background: '#f9f9f9',
+            WebkitAppearance: 'none'
           }}
         />
         <button
           onClick={sendMessage}
           disabled={loading || !input.trim()}
           style={{
-            width: 46, height: 46,
+            width: 42, height: 42,
             borderRadius: '50%',
-            background: input.trim() && !loading ? '#3d7a5e' : '#ccc',
-            border: 'none', color: 'white',
-            fontSize: 18,
+            background: input.trim() && !loading ? '#3d7a5e' : '#d1d5db',
+            border: 'none',
+            color: 'white',
+            fontSize: 17,
             cursor: input.trim() && !loading ? 'pointer' : 'default',
             transition: 'background 0.2s',
             flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >↑</button>
       </div>
+
     </div>
   )
 }
